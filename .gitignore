@@ -12,12 +12,16 @@ wheels/
 # Secrets
 .env
 
-# Parsed markdown (reproducible via process.py)
+# Parsed markdown (reproducible via process.py / process_fr.py)
 pages/
+pages_fr/
 
 # Embeddings (unused in final visualization)
 embed.py
 embeddings.json
+
+# French pipeline generated data (reproducible)
+html_fr/
 
 # macOS
 .DS_Store

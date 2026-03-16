@@ -1,0 +1,858 @@
+[
+  {
+    "title": "Maraîchage",
+    "rome_code": "A1414",
+    "domain": "Agriculture et Pêche, Espaces naturels et Espaces verts, Soins aux animaux",
+    "domain_code": "A",
+    "subdomain": "Production végétale",
+    "slug": "maraichage"
+  },
+  {
+    "title": "Arboriculture et viticulture",
+    "rome_code": "A1405",
+    "domain": "Agriculture et Pêche, Espaces naturels et Espaces verts, Soins aux animaux",
+    "domain_code": "A",
+    "subdomain": "Production végétale",
+    "slug": "arboriculture-viticulture"
+  },
+  {
+    "title": "Élevage bovin ou équin",
+    "rome_code": "A1407",
+    "domain": "Agriculture et Pêche, Espaces naturels et Espaces verts, Soins aux animaux",
+    "domain_code": "A",
+    "subdomain": "Production animale",
+    "slug": "elevage-bovin-equin"
+  },
+  {
+    "title": "Pêche",
+    "rome_code": "A1416",
+    "domain": "Agriculture et Pêche, Espaces naturels et Espaces verts, Soins aux animaux",
+    "domain_code": "A",
+    "subdomain": "Pêche et aquaculture",
+    "slug": "peche"
+  },
+  {
+    "title": "Entretien des espaces verts",
+    "rome_code": "A1203",
+    "domain": "Agriculture et Pêche, Espaces naturels et Espaces verts, Soins aux animaux",
+    "domain_code": "A",
+    "subdomain": "Espaces verts",
+    "slug": "entretien-espaces-verts"
+  },
+  {
+    "title": "Soins aux animaux",
+    "rome_code": "A1501",
+    "domain": "Agriculture et Pêche, Espaces naturels et Espaces verts, Soins aux animaux",
+    "domain_code": "A",
+    "subdomain": "Soins aux animaux",
+    "slug": "soins-animaux"
+  },
+  {
+    "title": "Bûcheronnage et élagage",
+    "rome_code": "A1201",
+    "domain": "Agriculture et Pêche, Espaces naturels et Espaces verts, Soins aux animaux",
+    "domain_code": "A",
+    "subdomain": "Sylviculture",
+    "slug": "bucheronnage-elagage"
+  },
+  {
+    "title": "Arts plastiques",
+    "rome_code": "B1101",
+    "domain": "Arts et Façonnage d'ouvrages d'art",
+    "domain_code": "B",
+    "subdomain": "Création artistique",
+    "slug": "arts-plastiques"
+  },
+  {
+    "title": "Métiers d'art de la bijouterie",
+    "rome_code": "B1603",
+    "domain": "Arts et Façonnage d'ouvrages d'art",
+    "domain_code": "B",
+    "subdomain": "Bijouterie et orfèvrerie",
+    "slug": "bijouterie"
+  },
+  {
+    "title": "Réalisation d'ouvrages en bois",
+    "rome_code": "B1302",
+    "domain": "Arts et Façonnage d'ouvrages d'art",
+    "domain_code": "B",
+    "subdomain": "Menuiserie d'art",
+    "slug": "ouvrages-bois"
+  },
+  {
+    "title": "Conduite de travaux du BTP",
+    "rome_code": "F1201",
+    "domain": "Construction, Bâtiment et Travaux publics",
+    "domain_code": "F",
+    "subdomain": "Direction et encadrement",
+    "slug": "conduite-travaux-btp"
+  },
+  {
+    "title": "Maçonnerie",
+    "rome_code": "F1703",
+    "domain": "Construction, Bâtiment et Travaux publics",
+    "domain_code": "F",
+    "subdomain": "Gros œuvre",
+    "slug": "maconnerie"
+  },
+  {
+    "title": "Électricité bâtiment",
+    "rome_code": "F1602",
+    "domain": "Construction, Bâtiment et Travaux publics",
+    "domain_code": "F",
+    "subdomain": "Second œuvre",
+    "slug": "electricite-batiment"
+  },
+  {
+    "title": "Plomberie et chauffage",
+    "rome_code": "F1603",
+    "domain": "Construction, Bâtiment et Travaux publics",
+    "domain_code": "F",
+    "subdomain": "Second œuvre",
+    "slug": "plomberie-chauffage"
+  },
+  {
+    "title": "Peinture en bâtiment",
+    "rome_code": "F1606",
+    "domain": "Construction, Bâtiment et Travaux publics",
+    "domain_code": "F",
+    "subdomain": "Second œuvre",
+    "slug": "peinture-batiment"
+  },
+  {
+    "title": "Charpente et couverture",
+    "rome_code": "F1501",
+    "domain": "Construction, Bâtiment et Travaux publics",
+    "domain_code": "F",
+    "subdomain": "Gros œuvre",
+    "slug": "charpente-couverture"
+  },
+  {
+    "title": "Travaux publics",
+    "rome_code": "F1702",
+    "domain": "Construction, Bâtiment et Travaux publics",
+    "domain_code": "F",
+    "subdomain": "Travaux publics",
+    "slug": "travaux-publics"
+  },
+  {
+    "title": "Architecture du BTP",
+    "rome_code": "F1101",
+    "domain": "Construction, Bâtiment et Travaux publics",
+    "domain_code": "F",
+    "subdomain": "Conception et études",
+    "slug": "architecture-btp"
+  },
+  {
+    "title": "Comptabilité",
+    "rome_code": "M1203",
+    "domain": "Support à l'entreprise",
+    "domain_code": "M",
+    "subdomain": "Comptabilité et gestion",
+    "slug": "comptabilite"
+  },
+  {
+    "title": "Contrôle de gestion",
+    "rome_code": "M1204",
+    "domain": "Support à l'entreprise",
+    "domain_code": "M",
+    "subdomain": "Comptabilité et gestion",
+    "slug": "controle-gestion"
+  },
+  {
+    "title": "Assistanat de direction",
+    "rome_code": "M1604",
+    "domain": "Support à l'entreprise",
+    "domain_code": "M",
+    "subdomain": "Administration",
+    "slug": "assistanat-direction"
+  },
+  {
+    "title": "Secrétariat",
+    "rome_code": "M1607",
+    "domain": "Support à l'entreprise",
+    "domain_code": "M",
+    "subdomain": "Administration",
+    "slug": "secretariat"
+  },
+  {
+    "title": "Ressources humaines",
+    "rome_code": "M1502",
+    "domain": "Support à l'entreprise",
+    "domain_code": "M",
+    "subdomain": "Ressources humaines",
+    "slug": "ressources-humaines"
+  },
+  {
+    "title": "Direction administrative et financière",
+    "rome_code": "M1205",
+    "domain": "Support à l'entreprise",
+    "domain_code": "M",
+    "subdomain": "Direction",
+    "slug": "direction-administrative-financiere"
+  },
+  {
+    "title": "Audit et contrôle comptable",
+    "rome_code": "M1202",
+    "domain": "Support à l'entreprise",
+    "domain_code": "M",
+    "subdomain": "Comptabilité et gestion",
+    "slug": "audit-controle-comptable"
+  },
+  {
+    "title": "Analyse financière",
+    "rome_code": "M1201",
+    "domain": "Support à l'entreprise",
+    "domain_code": "M",
+    "subdomain": "Finance",
+    "slug": "analyse-financiere"
+  },
+  {
+    "title": "Juridique",
+    "rome_code": "K1903",
+    "domain": "Services à la personne et à la collectivité",
+    "domain_code": "K",
+    "subdomain": "Droit",
+    "slug": "juridique"
+  },
+  {
+    "title": "Développement informatique",
+    "rome_code": "M1805",
+    "domain": "Support à l'entreprise",
+    "domain_code": "M",
+    "subdomain": "Informatique",
+    "slug": "developpement-informatique"
+  },
+  {
+    "title": "Administration de systèmes informatiques",
+    "rome_code": "M1801",
+    "domain": "Support à l'entreprise",
+    "domain_code": "M",
+    "subdomain": "Informatique",
+    "slug": "administration-systemes"
+  },
+  {
+    "title": "Expertise et support technique en systèmes d'information",
+    "rome_code": "M1802",
+    "domain": "Support à l'entreprise",
+    "domain_code": "M",
+    "subdomain": "Informatique",
+    "slug": "expertise-support-si"
+  },
+  {
+    "title": "Direction des systèmes d'information",
+    "rome_code": "M1803",
+    "domain": "Support à l'entreprise",
+    "domain_code": "M",
+    "subdomain": "Informatique",
+    "slug": "direction-si"
+  },
+  {
+    "title": "Études et développement de réseaux de télécoms",
+    "rome_code": "M1804",
+    "domain": "Support à l'entreprise",
+    "domain_code": "M",
+    "subdomain": "Informatique",
+    "slug": "reseaux-telecoms"
+  },
+  {
+    "title": "Data analyst / Data scientist",
+    "rome_code": "M1403",
+    "domain": "Support à l'entreprise",
+    "domain_code": "M",
+    "subdomain": "Études et conseil",
+    "slug": "data-analyst-scientist"
+  },
+  {
+    "title": "Marketing",
+    "rome_code": "M1705",
+    "domain": "Support à l'entreprise",
+    "domain_code": "M",
+    "subdomain": "Marketing et communication",
+    "slug": "marketing"
+  },
+  {
+    "title": "Communication",
+    "rome_code": "E1103",
+    "domain": "Communication, Média et Multimédia",
+    "domain_code": "E",
+    "subdomain": "Communication",
+    "slug": "communication"
+  },
+  {
+    "title": "Journalisme",
+    "rome_code": "E1106",
+    "domain": "Communication, Média et Multimédia",
+    "domain_code": "E",
+    "subdomain": "Média",
+    "slug": "journalisme"
+  },
+  {
+    "title": "Conception de contenus multimédias",
+    "rome_code": "E1104",
+    "domain": "Communication, Média et Multimédia",
+    "domain_code": "E",
+    "subdomain": "Multimédia",
+    "slug": "contenus-multimedias"
+  },
+  {
+    "title": "Graphisme et design",
+    "rome_code": "E1205",
+    "domain": "Communication, Média et Multimédia",
+    "domain_code": "E",
+    "subdomain": "Design",
+    "slug": "graphisme-design"
+  },
+  {
+    "title": "Traduction et interprétariat",
+    "rome_code": "E1108",
+    "domain": "Communication, Média et Multimédia",
+    "domain_code": "E",
+    "subdomain": "Linguistique",
+    "slug": "traduction-interpretariat"
+  },
+  {
+    "title": "Photographie",
+    "rome_code": "E1201",
+    "domain": "Communication, Média et Multimédia",
+    "domain_code": "E",
+    "subdomain": "Production audiovisuelle",
+    "slug": "photographie"
+  },
+  {
+    "title": "Production audiovisuelle",
+    "rome_code": "L1302",
+    "domain": "Spectacle",
+    "domain_code": "L",
+    "subdomain": "Production",
+    "slug": "production-audiovisuelle"
+  },
+  {
+    "title": "Vente en habillement et accessoires",
+    "rome_code": "D1214",
+    "domain": "Commerce, Vente et Grande distribution",
+    "domain_code": "D",
+    "subdomain": "Vente spécialisée",
+    "slug": "vente-habillement"
+  },
+  {
+    "title": "Vente en alimentation",
+    "rome_code": "D1106",
+    "domain": "Commerce, Vente et Grande distribution",
+    "domain_code": "D",
+    "subdomain": "Grande distribution",
+    "slug": "vente-alimentation"
+  },
+  {
+    "title": "Relation commerciale grands comptes",
+    "rome_code": "D1402",
+    "domain": "Commerce, Vente et Grande distribution",
+    "domain_code": "D",
+    "subdomain": "Commerce B2B",
+    "slug": "relation-commerciale-grands-comptes"
+  },
+  {
+    "title": "Management de magasin",
+    "rome_code": "D1301",
+    "domain": "Commerce, Vente et Grande distribution",
+    "domain_code": "D",
+    "subdomain": "Distribution",
+    "slug": "management-magasin"
+  },
+  {
+    "title": "Téléconseil et télévente",
+    "rome_code": "D1408",
+    "domain": "Commerce, Vente et Grande distribution",
+    "domain_code": "D",
+    "subdomain": "Vente à distance",
+    "slug": "teleconseil-televente"
+  },
+  {
+    "title": "Relation commerciale auprès de particuliers",
+    "rome_code": "D1403",
+    "domain": "Commerce, Vente et Grande distribution",
+    "domain_code": "D",
+    "subdomain": "Commerce B2C",
+    "slug": "relation-commerciale-particuliers"
+  },
+  {
+    "title": "Achats",
+    "rome_code": "M1101",
+    "domain": "Support à l'entreprise",
+    "domain_code": "M",
+    "subdomain": "Achats et logistique",
+    "slug": "achats"
+  },
+  {
+    "title": "Enseignement général du second degré",
+    "rome_code": "K2107",
+    "domain": "Services à la personne et à la collectivité",
+    "domain_code": "K",
+    "subdomain": "Enseignement",
+    "slug": "enseignement-secondaire"
+  },
+  {
+    "title": "Enseignement supérieur",
+    "rome_code": "K2108",
+    "domain": "Services à la personne et à la collectivité",
+    "domain_code": "K",
+    "subdomain": "Enseignement",
+    "slug": "enseignement-superieur"
+  },
+  {
+    "title": "Formation professionnelle",
+    "rome_code": "K2111",
+    "domain": "Services à la personne et à la collectivité",
+    "domain_code": "K",
+    "subdomain": "Formation",
+    "slug": "formation-professionnelle"
+  },
+  {
+    "title": "Éducation de jeunes enfants",
+    "rome_code": "K1202",
+    "domain": "Services à la personne et à la collectivité",
+    "domain_code": "K",
+    "subdomain": "Petite enfance",
+    "slug": "education-jeunes-enfants"
+  },
+  {
+    "title": "Médecine générale",
+    "rome_code": "J1102",
+    "domain": "Santé",
+    "domain_code": "J",
+    "subdomain": "Médecine",
+    "slug": "medecine-generaliste"
+  },
+  {
+    "title": "Médecine spécialisée",
+    "rome_code": "J1104",
+    "domain": "Santé",
+    "domain_code": "J",
+    "subdomain": "Médecine",
+    "slug": "medecine-specialisee"
+  },
+  {
+    "title": "Soins infirmiers généralistes",
+    "rome_code": "J1506",
+    "domain": "Santé",
+    "domain_code": "J",
+    "subdomain": "Soins infirmiers",
+    "slug": "soins-infirmiers"
+  },
+  {
+    "title": "Aide-soignant",
+    "rome_code": "J1501",
+    "domain": "Santé",
+    "domain_code": "J",
+    "subdomain": "Soins paramédicaux",
+    "slug": "aide-soignant"
+  },
+  {
+    "title": "Pharmacie",
+    "rome_code": "J1202",
+    "domain": "Santé",
+    "domain_code": "J",
+    "subdomain": "Pharmacie",
+    "slug": "pharmacie"
+  },
+  {
+    "title": "Kinésithérapie",
+    "rome_code": "J1404",
+    "domain": "Santé",
+    "domain_code": "J",
+    "subdomain": "Rééducation",
+    "slug": "kinesitherapie"
+  },
+  {
+    "title": "Chirurgie dentaire",
+    "rome_code": "J1103",
+    "domain": "Santé",
+    "domain_code": "J",
+    "subdomain": "Médecine dentaire",
+    "slug": "chirurgie-dentaire"
+  },
+  {
+    "title": "Psychologie",
+    "rome_code": "K1104",
+    "domain": "Services à la personne et à la collectivité",
+    "domain_code": "K",
+    "subdomain": "Action sociale",
+    "slug": "psychologie"
+  },
+  {
+    "title": "Conduite de transport de marchandises",
+    "rome_code": "N4101",
+    "domain": "Transport et Logistique",
+    "domain_code": "N",
+    "subdomain": "Conduite routière",
+    "slug": "conduite-transport-marchandises"
+  },
+  {
+    "title": "Conduite de transport en commun",
+    "rome_code": "N4103",
+    "domain": "Transport et Logistique",
+    "domain_code": "N",
+    "subdomain": "Transport de voyageurs",
+    "slug": "conduite-transport-commun"
+  },
+  {
+    "title": "Magasinage et préparation de commandes",
+    "rome_code": "N1103",
+    "domain": "Transport et Logistique",
+    "domain_code": "N",
+    "subdomain": "Logistique",
+    "slug": "magasinage-preparation-commandes"
+  },
+  {
+    "title": "Direction d'exploitation des transports",
+    "rome_code": "N4201",
+    "domain": "Transport et Logistique",
+    "domain_code": "N",
+    "subdomain": "Direction",
+    "slug": "direction-exploitation-transports"
+  },
+  {
+    "title": "Cuisine",
+    "rome_code": "G1602",
+    "domain": "Hôtellerie-Restauration, Tourisme, Loisirs et Animation",
+    "domain_code": "G",
+    "subdomain": "Restauration",
+    "slug": "cuisine"
+  },
+  {
+    "title": "Service en restauration",
+    "rome_code": "G1803",
+    "domain": "Hôtellerie-Restauration, Tourisme, Loisirs et Animation",
+    "domain_code": "G",
+    "subdomain": "Restauration",
+    "slug": "service-restauration"
+  },
+  {
+    "title": "Réception en hôtellerie",
+    "rome_code": "G1703",
+    "domain": "Hôtellerie-Restauration, Tourisme, Loisirs et Animation",
+    "domain_code": "G",
+    "subdomain": "Hôtellerie",
+    "slug": "reception-hotellerie"
+  },
+  {
+    "title": "Animation de loisirs",
+    "rome_code": "G1202",
+    "domain": "Hôtellerie-Restauration, Tourisme, Loisirs et Animation",
+    "domain_code": "G",
+    "subdomain": "Tourisme et loisirs",
+    "slug": "animation-loisirs"
+  },
+  {
+    "title": "Boulangerie - pâtisserie",
+    "rome_code": "D1102",
+    "domain": "Commerce, Vente et Grande distribution",
+    "domain_code": "D",
+    "subdomain": "Artisanat alimentaire",
+    "slug": "boulangerie-patisserie"
+  },
+  {
+    "title": "Maintenance industrielle",
+    "rome_code": "I1304",
+    "domain": "Installation et Maintenance",
+    "domain_code": "I",
+    "subdomain": "Maintenance industrielle",
+    "slug": "maintenance-industrielle"
+  },
+  {
+    "title": "Maintenance des bâtiments",
+    "rome_code": "I1203",
+    "domain": "Installation et Maintenance",
+    "domain_code": "I",
+    "subdomain": "Maintenance bâtiments",
+    "slug": "maintenance-batiments"
+  },
+  {
+    "title": "Maintenance informatique et bureautique",
+    "rome_code": "I1401",
+    "domain": "Installation et Maintenance",
+    "domain_code": "I",
+    "subdomain": "Maintenance informatique",
+    "slug": "maintenance-informatique"
+  },
+  {
+    "title": "Mécanique automobile",
+    "rome_code": "I1604",
+    "domain": "Installation et Maintenance",
+    "domain_code": "I",
+    "subdomain": "Mécanique auto",
+    "slug": "mecanique-automobile"
+  },
+  {
+    "title": "Pilotage d'installation de production industrielle",
+    "rome_code": "H2603",
+    "domain": "Industrie",
+    "domain_code": "H",
+    "subdomain": "Production",
+    "slug": "pilotage-production-industrielle"
+  },
+  {
+    "title": "Soudage",
+    "rome_code": "H2913",
+    "domain": "Industrie",
+    "domain_code": "H",
+    "subdomain": "Métallurgie",
+    "slug": "soudage"
+  },
+  {
+    "title": "Usinage",
+    "rome_code": "H2903",
+    "domain": "Industrie",
+    "domain_code": "H",
+    "subdomain": "Métallurgie",
+    "slug": "usinage"
+  },
+  {
+    "title": "Recherche en sciences de l'ingénieur",
+    "rome_code": "K2402",
+    "domain": "Services à la personne et à la collectivité",
+    "domain_code": "K",
+    "subdomain": "Recherche",
+    "slug": "recherche-ingenieur"
+  },
+  {
+    "title": "Études et développement informatique",
+    "rome_code": "M1806",
+    "domain": "Support à l'entreprise",
+    "domain_code": "M",
+    "subdomain": "Informatique",
+    "slug": "etudes-developpement-informatique"
+  },
+  {
+    "title": "Qualité industrielle",
+    "rome_code": "H1502",
+    "domain": "Industrie",
+    "domain_code": "H",
+    "subdomain": "Qualité",
+    "slug": "qualite-industrielle"
+  },
+  {
+    "title": "Sécurité et surveillance",
+    "rome_code": "K2503",
+    "domain": "Services à la personne et à la collectivité",
+    "domain_code": "K",
+    "subdomain": "Sécurité",
+    "slug": "securite-surveillance"
+  },
+  {
+    "title": "Sécurité civile et secours",
+    "rome_code": "K1705",
+    "domain": "Services à la personne et à la collectivité",
+    "domain_code": "K",
+    "subdomain": "Sécurité civile",
+    "slug": "securite-civile-secours"
+  },
+  {
+    "title": "Nettoyage de locaux",
+    "rome_code": "K2204",
+    "domain": "Services à la personne et à la collectivité",
+    "domain_code": "K",
+    "subdomain": "Propreté",
+    "slug": "nettoyage-locaux"
+  },
+  {
+    "title": "Aide à domicile",
+    "rome_code": "K1302",
+    "domain": "Services à la personne et à la collectivité",
+    "domain_code": "K",
+    "subdomain": "Aide à la personne",
+    "slug": "aide-domicile"
+  },
+  {
+    "title": "Assistance auprès d'adultes",
+    "rome_code": "K1301",
+    "domain": "Services à la personne et à la collectivité",
+    "domain_code": "K",
+    "subdomain": "Aide à la personne",
+    "slug": "assistance-adultes"
+  },
+  {
+    "title": "Travail social",
+    "rome_code": "K1201",
+    "domain": "Services à la personne et à la collectivité",
+    "domain_code": "K",
+    "subdomain": "Action sociale",
+    "slug": "travail-social"
+  },
+  {
+    "title": "Banque",
+    "rome_code": "C1206",
+    "domain": "Banque, Assurance, Immobilier",
+    "domain_code": "C",
+    "subdomain": "Banque",
+    "slug": "banque"
+  },
+  {
+    "title": "Assurance",
+    "rome_code": "C1102",
+    "domain": "Banque, Assurance, Immobilier",
+    "domain_code": "C",
+    "subdomain": "Assurance",
+    "slug": "assurance"
+  },
+  {
+    "title": "Transaction immobilière",
+    "rome_code": "C1504",
+    "domain": "Banque, Assurance, Immobilier",
+    "domain_code": "C",
+    "subdomain": "Immobilier",
+    "slug": "transaction-immobiliere"
+  },
+  {
+    "title": "Gestion de patrimoine",
+    "rome_code": "C1205",
+    "domain": "Banque, Assurance, Immobilier",
+    "domain_code": "C",
+    "subdomain": "Finance",
+    "slug": "gestion-patrimoine"
+  },
+  {
+    "title": "Coiffure",
+    "rome_code": "D1202",
+    "domain": "Commerce, Vente et Grande distribution",
+    "domain_code": "D",
+    "subdomain": "Services de proximité",
+    "slug": "coiffure"
+  },
+  {
+    "title": "Direction de restaurant",
+    "rome_code": "G1402",
+    "domain": "Hôtellerie-Restauration, Tourisme, Loisirs et Animation",
+    "domain_code": "G",
+    "subdomain": "Direction",
+    "slug": "direction-restaurant"
+  },
+  {
+    "title": "Opérations administratives",
+    "rome_code": "M1602",
+    "domain": "Support à l'entreprise",
+    "domain_code": "M",
+    "subdomain": "Administration",
+    "slug": "operations-administratives"
+  },
+  {
+    "title": "Saisie de données",
+    "rome_code": "M1606",
+    "domain": "Support à l'entreprise",
+    "domain_code": "M",
+    "subdomain": "Administration",
+    "slug": "saisie-donnees"
+  },
+  {
+    "title": "Direction de grande entreprise",
+    "rome_code": "M1302",
+    "domain": "Support à l'entreprise",
+    "domain_code": "M",
+    "subdomain": "Direction",
+    "slug": "direction-grande-entreprise"
+  },
+  {
+    "title": "Management et ingénierie de production",
+    "rome_code": "H2502",
+    "domain": "Industrie",
+    "domain_code": "H",
+    "subdomain": "Direction",
+    "slug": "management-ingenierie-production"
+  },
+  {
+    "title": "Études et prospectives socio-économiques",
+    "rome_code": "K2401",
+    "domain": "Services à la personne et à la collectivité",
+    "domain_code": "K",
+    "subdomain": "Études",
+    "slug": "etudes-prospectives-socioeconomiques"
+  },
+  {
+    "title": "Véterinaire",
+    "rome_code": "A1504",
+    "domain": "Agriculture et Pêche, Espaces naturels et Espaces verts, Soins aux animaux",
+    "domain_code": "A",
+    "subdomain": "Soins aux animaux",
+    "slug": "veterinaire"
+  },
+  {
+    "title": "Musique et chant",
+    "rome_code": "L1202",
+    "domain": "Spectacle",
+    "domain_code": "L",
+    "subdomain": "Musique",
+    "slug": "musique-chant"
+  },
+  {
+    "title": "Danse",
+    "rome_code": "L1201",
+    "domain": "Spectacle",
+    "domain_code": "L",
+    "subdomain": "Arts vivants",
+    "slug": "danse"
+  },
+  {
+    "title": "Art dramatique",
+    "rome_code": "L1203",
+    "domain": "Spectacle",
+    "domain_code": "L",
+    "subdomain": "Théâtre et cinéma",
+    "slug": "art-dramatique"
+  },
+  {
+    "title": "Conseil en emploi et insertion professionnelle",
+    "rome_code": "K1801",
+    "domain": "Services à la personne et à la collectivité",
+    "domain_code": "K",
+    "subdomain": "Emploi",
+    "slug": "conseil-emploi-insertion"
+  },
+  {
+    "title": "Biologie médicale",
+    "rome_code": "J1201",
+    "domain": "Santé",
+    "domain_code": "J",
+    "subdomain": "Laboratoire",
+    "slug": "biologie-medicale"
+  },
+  {
+    "title": "Imagerie médicale",
+    "rome_code": "J1306",
+    "domain": "Santé",
+    "domain_code": "J",
+    "subdomain": "Technique médicale",
+    "slug": "imagerie-medicale"
+  },
+  {
+    "title": "Orthoptique",
+    "rome_code": "J1407",
+    "domain": "Santé",
+    "domain_code": "J",
+    "subdomain": "Rééducation",
+    "slug": "orthoptique"
+  },
+  {
+    "title": "Ergothérapie",
+    "rome_code": "J1403",
+    "domain": "Santé",
+    "domain_code": "J",
+    "subdomain": "Rééducation",
+    "slug": "ergotherapie"
+  },
+  {
+    "title": "Conduite d'engins de déplacement des charges",
+    "rome_code": "N1101",
+    "domain": "Transport et Logistique",
+    "domain_code": "N",
+    "subdomain": "Logistique",
+    "slug": "conduite-engins-charges"
+  },
+  {
+    "title": "Affrètement et transport",
+    "rome_code": "N1201",
+    "domain": "Transport et Logistique",
+    "domain_code": "N",
+    "subdomain": "Transport",
+    "slug": "affretement-transport"
+  }
+]
