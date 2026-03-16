@@ -82,6 +82,17 @@ class TokenManager:
         return {"Authorization": f"Bearer {self.get_token(client)}"}
 
 
+def _parse_response(resp, url):
+    """Parse JSON response, returning None on empty body."""
+    if not resp.text.strip():
+        return None
+    try:
+        return resp.json()
+    except Exception:
+        print(f"\n    [WARN] Non-JSON response from {url}: {resp.status_code} {resp.text[:200]}")
+        return None
+
+
 def api_get(client, url, token_mgr, retries=3, delay=1.0):
     """GET with retry on 401/429/5xx."""
     for attempt in range(retries):
@@ -101,7 +112,7 @@ def api_get(client, url, token_mgr, retries=3, delay=1.0):
             if resp.status_code == 404:
                 return None
             resp.raise_for_status()
-            return resp.json()
+            return _parse_response(resp, url)
         except httpx.TimeoutException:
             time.sleep(delay * (2 ** attempt))
     return None
@@ -126,7 +137,7 @@ def api_post(client, url, token_mgr, json_body, retries=3, delay=1.0):
             if resp.status_code in (404, 400):
                 return None
             resp.raise_for_status()
-            return resp.json()
+            return _parse_response(resp, url)
         except httpx.TimeoutException:
             time.sleep(delay * (2 ** attempt))
     return None
