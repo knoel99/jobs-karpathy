@@ -79,7 +79,10 @@ class TokenManager:
         return self.token
 
     def headers(self, client):
-        return {"Authorization": f"Bearer {self.get_token(client)}"}
+        return {
+            "Authorization": f"Bearer {self.get_token(client)}",
+            "Accept": "application/json",
+        }
 
 
 def _parse_response(resp, url):
