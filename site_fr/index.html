@@ -163,6 +163,25 @@ body {
   text-align: right;
 }
 
+.color-toggle {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.color-toggle button {
+  padding: 4px 8px;
+  background: rgba(255,255,255,0.06);
+  color: rgba(255,255,255,0.6);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 4px;
+  font-size: 11px;
+  cursor: pointer;
+}
+.color-toggle button.active {
+  background: rgba(255,255,255,0.15);
+  color: #fff;
+  border-color: rgba(255,255,255,0.3);
+}
 .view-toggle {
   display: flex;
   gap: 4px;
@@ -296,12 +315,22 @@ canvas#canvas {
 <div id="sidebar">
   <div>
     <h1>Exposition des métiers français à l'IA</h1>
-    <div class="subtitle">Fiches ROME &middot; couleur = exposition IA<br>Données <a href="https://candidat.francetravail.fr/">France Travail</a>, scoré par Gemini Flash<br><a href="https://github.com/karpathy/jobs">GitHub</a></div>
+    <div class="subtitle">Fiches ROME &middot; Données <a href="https://candidat.francetravail.fr/">France Travail</a>, scoré par Gemini Flash<br><a href="https://github.com/karpathy/jobs">GitHub</a></div>
   </div>
 
   <div class="view-toggle">
     <button class="active" onclick="setView('treemap')">Treemap</button>
     <button onclick="setView('scatter')">Exposition vs Tension</button>
+  </div>
+
+  <div class="stat-section">
+    <h3>Couche</h3>
+    <div class="color-toggle" id="colorToggle">
+      <button data-mode="tension" class="active">Tension marché</button>
+      <button data-mode="pay">Salaire médian</button>
+      <button data-mode="education">Études</button>
+      <button data-mode="exposure">Exposition IA</button>
+    </div>
   </div>
 
   <div class="stat-section">
@@ -344,9 +373,9 @@ canvas#canvas {
   </div>
 
   <div class="gradient-legend">
-    <span>Faible</span>
+    <span id="legendLow">Défavorable</span>
     <canvas id="gradientLegend" width="80" height="8"></canvas>
-    <span>Élevée</span>
+    <span id="legendHigh">Favorable</span>
   </div>
 </div>
 
@@ -405,6 +434,126 @@ function tensionColorCSS(tension, alpha) {
     b = Math.round(30 + s * 30);
   }
   return `rgba(${r},${g},${b},${alpha})`;
+}
+
+// ── Color mode system ─────────────────────────────────────────────────
+
+let colorMode = "tension";
+
+const EDU_LEVELS_FR = [
+  "Sans diplôme",
+  "CAP/BEP",
+  "Bac",
+  "Bac (Baccalauréat)",
+  "Bac+2 (BTS/DUT)",
+  "Bac+3 (Licence)",
+  "Bac+5 (Master/Ingénieur)",
+  "Bac+8 (Doctorat)",
+];
+
+function boostContrast(t) {
+  const c = (t - 0.5) * 2;
+  const b = Math.sign(c) * Math.pow(Math.abs(c), 0.55);
+  return b / 2 + 0.5;
+}
+
+function greenRedCSS(t, alpha) {
+  t = boostContrast(Math.max(0, Math.min(1, t)));
+  let r, g, b;
+  if (t < 0.5) {
+    const s = t / 0.5;
+    r = Math.round(30 + s * 200);
+    g = Math.round(180 - s * 20);
+    b = Math.round(40 - s * 20);
+  } else {
+    const s = (t - 0.5) / 0.5;
+    r = Math.round(230 + s * 25);
+    g = Math.round(160 - s * 130);
+    b = Math.round(20 - s * 5);
+  }
+  return `rgba(${r},${g},${b},${alpha})`;
+}
+
+function payColorCSS(pay, alpha) {
+  if (pay == null) return `rgba(128,128,128,${alpha})`;
+  const t = 1 - (Math.log(Math.max(20000, Math.min(120000, pay))) - Math.log(20000)) / (Math.log(120000) - Math.log(20000));
+  return greenRedCSS(t, alpha);
+}
+
+function eduColorCSS(edu, alpha) {
+  if (!edu) return `rgba(128,128,128,${alpha})`;
+  let idx = EDU_LEVELS_FR.indexOf(edu);
+  if (idx < 0) {
+    // Fuzzy match
+    for (let i = 0; i < EDU_LEVELS_FR.length; i++) {
+      if (edu.includes(EDU_LEVELS_FR[i]) || EDU_LEVELS_FR[i].includes(edu)) { idx = i; break; }
+    }
+  }
+  if (idx < 0) return `rgba(128,128,128,${alpha})`;
+  return greenRedCSS(1 - idx / (EDU_LEVELS_FR.length - 1), alpha);
+}
+
+function tensionMarketColorCSS(tension, alpha) {
+  if (tension == null) return `rgba(128,128,128,${alpha})`;
+  // 1=très défavorable (red) → 5=très favorable (green)
+  const t = (tension - 1) / 4;  // 0=défavorable, 1=favorable
+  return greenRedCSS(1 - t, alpha);
+}
+
+function colorForItem(d, alpha) {
+  switch (colorMode) {
+    case "tension": return tensionMarketColorCSS(d.tension, alpha);
+    case "pay": return payColorCSS(d.pay, alpha);
+    case "education": return eduColorCSS(d.education, alpha);
+    case "exposure": return exposureColorCSS(d.exposure, alpha);
+    default: return exposureColorCSS(d.exposure, alpha);
+  }
+}
+
+function colorForAggregate(items, alpha) {
+  switch (colorMode) {
+    case "tension": {
+      let s = 0, c = 0;
+      for (const d of items) { if (d.tension != null) { const w = d.demandeurs || 1; s += d.tension * w; c += w; } }
+      return c > 0 ? tensionMarketColorCSS(s / c, alpha) : `rgba(128,128,128,${alpha})`;
+    }
+    case "pay": {
+      let s = 0, c = 0;
+      for (const d of items) { if (d.pay != null) { const w = d.demandeurs || 1; s += d.pay * w; c += w; } }
+      return c > 0 ? payColorCSS(s / c, alpha) : `rgba(128,128,128,${alpha})`;
+    }
+    case "education": {
+      // Mode education: show most common level
+      let s = 0, c = 0;
+      for (const d of items) {
+        let idx = EDU_LEVELS_FR.indexOf(d.education);
+        if (idx < 0) for (let i = 0; i < EDU_LEVELS_FR.length; i++) {
+          if (d.education && (d.education.includes(EDU_LEVELS_FR[i]) || EDU_LEVELS_FR[i].includes(d.education))) { idx = i; break; }
+        }
+        if (idx >= 0) { const w = d.demandeurs || 1; s += idx * w; c += w; }
+      }
+      if (c === 0) return `rgba(128,128,128,${alpha})`;
+      const avgIdx = Math.round(s / c);
+      return eduColorCSS(EDU_LEVELS_FR[avgIdx] || "", alpha);
+    }
+    case "exposure":
+    default: {
+      const exp = weightedExposure(items);
+      return exposureColorCSS(exp, alpha);
+    }
+  }
+}
+
+function updateLegend() {
+  const lo = document.getElementById("legendLow");
+  const hi = document.getElementById("legendHigh");
+  switch (colorMode) {
+    case "tension": lo.textContent = "Défavorable"; hi.textContent = "Favorable"; break;
+    case "pay": lo.textContent = "< 20K\u20ac"; hi.textContent = "120K\u20ac+"; break;
+    case "education": lo.textContent = "Sans diplôme"; hi.textContent = "Doctorat"; break;
+    case "exposure": lo.textContent = "Faible"; hi.textContent = "Élevée"; break;
+  }
+  drawGradientLegend();
 }
 
 // ── Squarified treemap layout ──────────────────────────────────────────
@@ -645,17 +794,35 @@ function layout() {
       byGroup[key].push(d);
     }
 
-    const items = Object.entries(byGroup).map(([code, jobs]) => ({
-      isAggregate: true,
-      drillKey: code,
-      title: nameMap[code] || code,
-      code_rome: code,
-      exposure: weightedExposure(jobs),
-      demandeurs: jobs.reduce((s, j) => s + (j.demandeurs || 0), 0),
-      offres: jobs.reduce((s, j) => s + (j.offres || 0), 0),
-      jobCount: jobs.length,
-      value: jobs.reduce((s, j) => s + (j.demandeurs || 1), 0),
-    })).sort((a, b) => b.value - a.value);
+    const items = Object.entries(byGroup).map(([code, jobs]) => {
+      // Compute weighted averages for all color modes
+      let wPay = 0, cPay = 0, wTen = 0, cTen = 0, wEdu = 0, cEdu = 0;
+      for (const j of jobs) {
+        const w = j.demandeurs || 1;
+        if (j.pay != null) { wPay += j.pay * w; cPay += w; }
+        if (j.tension != null) { wTen += j.tension * w; cTen += w; }
+        let idx = EDU_LEVELS_FR.indexOf(j.education);
+        if (idx < 0 && j.education) for (let i = 0; i < EDU_LEVELS_FR.length; i++) {
+          if (j.education.includes(EDU_LEVELS_FR[i]) || EDU_LEVELS_FR[i].includes(j.education)) { idx = i; break; }
+        }
+        if (idx >= 0) { wEdu += idx * w; cEdu += w; }
+      }
+      return {
+        isAggregate: true,
+        drillKey: code,
+        title: nameMap[code] || code,
+        code_rome: code,
+        exposure: weightedExposure(jobs),
+        pay: cPay > 0 ? Math.round(wPay / cPay) : null,
+        tension: cTen > 0 ? Math.round(wTen / cTen * 10) / 10 : null,
+        education: cEdu > 0 ? (EDU_LEVELS_FR[Math.round(wEdu / cEdu)] || "") : "",
+        demandeurs: jobs.reduce((s, j) => s + (j.demandeurs || 0), 0),
+        offres: jobs.reduce((s, j) => s + (j.offres || 0), 0),
+        jobCount: jobs.length,
+        value: jobs.reduce((s, j) => s + (j.demandeurs || 1), 0),
+        _children: jobs,
+      };
+    }).sort((a, b) => b.value - a.value);
 
     rects = squarify(items, tx, ty, tw, th);
   } else {
@@ -687,7 +854,7 @@ function draw() {
     if (rw <= 0 || rh <= 0) continue;
 
     const fillAlpha = isHovered ? 0.8 : 0.5;
-    ctx.fillStyle = exposureColorCSS(r.exposure, fillAlpha);
+    ctx.fillStyle = colorForItem(r, fillAlpha);
     ctx.fillRect(rx, ry, rw, rh);
 
     if (isHovered) {
@@ -923,7 +1090,7 @@ function drawColumns() {
       ? (meta.colJobTotals[i] / meta.totalJobs) * meta.availW
       : meta.availW / meta.scores.length;
     if (colW > 16) {
-      ctx.fillStyle = exposureColorCSS(meta.scores[i], 0.7);
+      ctx.fillStyle = colorForItem({exposure: meta.scores[i], tension: meta.scores[i], pay: null, education: ""}, 0.7);
       ctx.fillText(meta.scores[i], hx + colW / 2, meta.pad.top - 5);
     }
     hx += colW + meta.colGap;
@@ -945,7 +1112,7 @@ function drawColumns() {
     if (rw <= 0 || rh <= 0) continue;
 
     const fillAlpha = isHovered ? 0.8 : 0.5;
-    ctx.fillStyle = tensionColorCSS(r.tension, fillAlpha);
+    ctx.fillStyle = colorForItem(r, fillAlpha);
     ctx.fillRect(rx, ry, rw, rh);
 
     if (isHovered) {
@@ -1198,11 +1365,30 @@ function drawGradientLegend() {
   const c = document.getElementById("gradientLegend");
   const gctx = c.getContext("2d");
   for (let x = 0; x < 80; x++) {
-    const score = (x / 79) * 10;
-    gctx.fillStyle = exposureColorCSS(score, 1);
+    const t = x / 79;
+    switch (colorMode) {
+      case "tension": gctx.fillStyle = tensionMarketColorCSS(1 + t * 4, 1); break;
+      case "pay": gctx.fillStyle = payColorCSS(20000 + t * 100000, 1); break;
+      case "education": gctx.fillStyle = eduColorCSS(EDU_LEVELS_FR[Math.round(t * (EDU_LEVELS_FR.length - 1))], 1); break;
+      case "exposure": default: gctx.fillStyle = exposureColorCSS(t * 10, 1); break;
+    }
     gctx.fillRect(x, 0, 1, 8);
   }
 }
+
+// ── Color mode toggle ──────────────────────────────────────────────────
+
+document.getElementById("colorToggle").addEventListener("click", (e) => {
+  const btn = e.target.closest("button[data-mode]");
+  if (!btn) return;
+  colorMode = btn.dataset.mode;
+  document.querySelectorAll("#colorToggle button").forEach(b => b.classList.remove("active"));
+  btn.classList.add("active");
+  updateLegend();
+  hovered = null;
+  hideTooltip();
+  resize();
+});
 
 // ── Load ───────────────────────────────────────────────────────────────
 
@@ -1212,7 +1398,7 @@ fetch("data.json")
     data = d;
     buildHierarchyMaps();
     computeStats();
-    drawGradientLegend();
+    updateLegend();
     updateBreadcrumb();
     resize();
   });
