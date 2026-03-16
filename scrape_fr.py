@@ -1,19 +1,22 @@
 """
 Scrape French occupation data from France Travail API (ROME 4.0).
 
-Uses OAuth2 client credentials to access the France Travail API and fetch
-structured JSON data for each ROME occupation (fiches métier).
+Async implementation with rate-limited concurrency. ROME endpoints are limited
+to 1 req/s, Marché du travail endpoints to 10 req/s. Multiple occupations are
+fetched concurrently within these global rate limits.
 
 Usage:
     uv run python scrape_fr.py                      # scrape all
     uv run python scrape_fr.py --start 0 --end 10   # scrape first 10
     uv run python scrape_fr.py --force               # re-scrape ignoring cache
+    uv run python scrape_fr.py --concurrency 20      # max parallel occupations
 
 Requires FRANCE_TRAVAIL_CLIENT_ID and FRANCE_TRAVAIL_CLIENT_SECRET in .env.
 Register at https://francetravail.io/ to obtain API credentials.
 """
 
 import argparse
+import asyncio
 import json
 import os
 import time
@@ -29,9 +32,28 @@ ROME_METIERS_BASE = "https://api.francetravail.io/partenaire/rome-metiers/v1/met
 ROME_COMP_BASE = "https://api.francetravail.io/partenaire/rome-competences/v1/competences"
 MARCHE_BASE = "https://api.francetravail.io/partenaire/stats-offres-demandes-emploi"
 
-# Rate limits: ROME = 1 req/sec, Marché du travail = 10 req/sec
-ROME_DELAY = 1.1
-MARCHE_DELAY = 0.15
+
+class RateLimiter:
+    """Token-bucket rate limiter for asyncio."""
+
+    def __init__(self, rate: float):
+        """rate: max requests per second."""
+        self._min_interval = 1.0 / rate
+        self._lock = asyncio.Lock()
+        self._last = 0.0
+
+    async def acquire(self):
+        async with self._lock:
+            now = asyncio.get_event_loop().time()
+            wait = self._last + self._min_interval - now
+            if wait > 0:
+                await asyncio.sleep(wait)
+            self._last = asyncio.get_event_loop().time()
+
+
+# Global rate limiters (created in main)
+rome_limiter: RateLimiter  # 1 req/s
+marche_limiter: RateLimiter  # ~8 req/s (safe margin from 10)
 
 
 class TokenManager:
@@ -41,46 +63,51 @@ class TokenManager:
         self.client_id = client_id
         self.client_secret = client_secret
         self.token = None
-        self.expires_at = 0
+        self.expires_at = 0.0
+        self._lock = asyncio.Lock()
 
-    def get_token(self, client):
+    async def get_token(self, client):
         """Get a valid token, refreshing if needed (tokens expire ~25 min)."""
         if self.token and time.time() < self.expires_at - 60:
             return self.token
-        token_data = {
-            "grant_type": "client_credentials",
-            "client_id": self.client_id,
-            "client_secret": self.client_secret,
-            "scope": " ".join([
-                "api_rome-metiersv1",
-                "api_rome-fiches-metiersv1",
-                "api_rome-competencesv1",
-                "api_stats-offres-demandes-emploiv1",
-                "offresetdemandesemploi",
-                "nomenclatureRome",
-            ]),
-        }
-        for attempt in range(3):
-            response = client.post(
-                TOKEN_URL,
-                params={"realm": "/partenaire"},
-                data=token_data,
-            )
-            if response.status_code == 200:
-                break
-            print(f"\n  [TOKEN] Attempt {attempt+1} failed: {response.status_code} {response.text[:200]}")
-            if attempt < 2:
-                time.sleep(2 ** attempt)
-        response.raise_for_status()
-        data = response.json()
-        self.token = data["access_token"]
-        self.expires_at = time.time() + data.get("expires_in", 1500)
-        print(f"  [TOKEN] Refreshed (expires in {data.get('expires_in', '?')}s)")
-        return self.token
+        async with self._lock:
+            # Double-check after acquiring lock
+            if self.token and time.time() < self.expires_at - 60:
+                return self.token
+            token_data = {
+                "grant_type": "client_credentials",
+                "client_id": self.client_id,
+                "client_secret": self.client_secret,
+                "scope": " ".join([
+                    "api_rome-metiersv1",
+                    "api_rome-fiches-metiersv1",
+                    "api_rome-competencesv1",
+                    "api_stats-offres-demandes-emploiv1",
+                    "offresetdemandesemploi",
+                    "nomenclatureRome",
+                ]),
+            }
+            for attempt in range(3):
+                response = await client.post(
+                    TOKEN_URL,
+                    params={"realm": "/partenaire"},
+                    data=token_data,
+                )
+                if response.status_code == 200:
+                    break
+                print(f"\n  [TOKEN] Attempt {attempt+1} failed: {response.status_code} {response.text[:200]}")
+                if attempt < 2:
+                    await asyncio.sleep(2 ** attempt)
+            response.raise_for_status()
+            data = response.json()
+            self.token = data["access_token"]
+            self.expires_at = time.time() + data.get("expires_in", 1500)
+            print(f"  [TOKEN] Refreshed (expires in {data.get('expires_in', '?')}s)")
+            return self.token
 
-    def headers(self, client):
+    async def headers(self, client):
         return {
-            "Authorization": f"Bearer {self.get_token(client)}",
+            "Authorization": f"Bearer {await self.get_token(client)}",
             "Accept": "application/json",
         }
 
@@ -96,84 +123,79 @@ def _parse_response(resp, url):
         return None
 
 
-def api_get(client, url, token_mgr, retries=3, delay=1.0):
-    """GET with retry on 401/429/5xx."""
+async def api_get(client, url, token_mgr, limiter, retries=3, delay=1.0):
+    """GET with rate limiting and retry on 401/429/5xx."""
     for attempt in range(retries):
         try:
-            resp = client.get(url, headers=token_mgr.headers(client), timeout=30)
+            await limiter.acquire()
+            resp = await client.get(url, headers=await token_mgr.headers(client), timeout=30)
             if resp.status_code == 401:
-                token_mgr.token = None  # force refresh
-                time.sleep(delay)
+                token_mgr.token = None
+                await asyncio.sleep(delay)
                 continue
             if resp.status_code == 429:
                 wait = float(resp.headers.get("Retry-After", delay * (2 ** attempt)))
-                time.sleep(wait)
+                await asyncio.sleep(wait)
                 continue
             if resp.status_code >= 500:
-                time.sleep(delay * (2 ** attempt))
+                await asyncio.sleep(delay * (2 ** attempt))
                 continue
             if resp.status_code == 404:
                 return None
             resp.raise_for_status()
             return _parse_response(resp, url)
         except httpx.TimeoutException:
-            time.sleep(delay * (2 ** attempt))
+            await asyncio.sleep(delay * (2 ** attempt))
     return None
 
 
-def api_post(client, url, token_mgr, json_body, retries=3, delay=1.0):
-    """POST with retry on 401/429/5xx."""
+async def api_post(client, url, token_mgr, json_body, limiter, retries=3, delay=1.0):
+    """POST with rate limiting and retry on 401/429/5xx."""
     for attempt in range(retries):
         try:
-            resp = client.post(url, headers=token_mgr.headers(client), json=json_body, timeout=30)
+            await limiter.acquire()
+            resp = await client.post(url, headers=await token_mgr.headers(client), json=json_body, timeout=30)
             if resp.status_code == 401:
                 token_mgr.token = None
-                time.sleep(delay)
+                await asyncio.sleep(delay)
                 continue
             if resp.status_code == 429:
                 wait = float(resp.headers.get("Retry-After", delay * (2 ** attempt)))
-                time.sleep(wait)
+                await asyncio.sleep(wait)
                 continue
             if resp.status_code >= 500:
-                time.sleep(delay * (2 ** attempt))
+                await asyncio.sleep(delay * (2 ** attempt))
                 continue
             if resp.status_code in (404, 400):
                 return None
             resp.raise_for_status()
             return _parse_response(resp, url)
         except httpx.TimeoutException:
-            time.sleep(delay * (2 ** attempt))
+            await asyncio.sleep(delay * (2 ** attempt))
     return None
 
 
-def scrape_occupation(client, token_mgr, rome_code, slug):
+async def scrape_occupation(client, token_mgr, rome_code):
     """Fetch all data for one ROME occupation."""
     result = {}
 
-    # 1. Fiche métier complète (ROME Fiches métiers v1 : 1 req/s)
-    fiche = api_get(client, f"{ROME_BASE}/fiche_metier/{rome_code}", token_mgr)
+    # 1. Fiche métier (ROME: 1 req/s)
+    fiche = await api_get(client, f"{ROME_BASE}/fiche_metier/{rome_code}", token_mgr, rome_limiter)
     if fiche:
         result["fiche"] = fiche
-    time.sleep(ROME_DELAY)
 
-    # 2. Métier info (ROME Métiers v1 : 1 req/s)
-    metier = api_get(client, f"{ROME_METIERS_BASE}/metier/{rome_code}", token_mgr)
+    # 2. Métier info (ROME: 1 req/s)
+    metier = await api_get(client, f"{ROME_METIERS_BASE}/metier/{rome_code}", token_mgr, rome_limiter)
     if metier:
         result["metier"] = metier
-    time.sleep(ROME_DELAY)
 
-    # 3. Salaires nationaux par ROME (Marché du travail : 10 req/s)
-    salaires = api_get(
+    # 3-6: Marché du travail endpoints (10 req/s) — can run in parallel
+    salaires_task = api_get(
         client,
         f"{MARCHE_BASE}/v1/indicateur/salaire-rome-fap/NAT/FR?codeRome={rome_code}",
-        token_mgr,
+        token_mgr, marche_limiter,
     )
-    if salaires:
-        result["salaires"] = salaires
-    time.sleep(MARCHE_DELAY)
-
-    # 4. Demandeurs d'emploi nationaux (POST, Marché du travail : 10 req/s)
-    demandeurs = api_post(
+    demandeurs_task = api_post(
         client,
         f"{MARCHE_BASE}/v1/indicateur/stat-demandeurs",
         token_mgr,
@@ -186,13 +208,9 @@ def scrape_occupation(client, token_mgr, rome_code, slug):
             "codeTypeNomenclature": "CATCAND",
             "dernierePeriode": True,
         },
+        limiter=marche_limiter,
     )
-    if demandeurs:
-        result["demandeurs"] = demandeurs
-    time.sleep(MARCHE_DELAY)
-
-    # 5. Offres d'emploi (POST, Marché du travail : 10 req/s)
-    offres = api_post(
+    offres_task = api_post(
         client,
         f"{MARCHE_BASE}/v1/indicateur/stat-offres",
         token_mgr,
@@ -205,13 +223,9 @@ def scrape_occupation(client, token_mgr, rome_code, slug):
             "codeTypeNomenclature": "ORIGINEOFF",
             "dernierePeriode": True,
         },
+        limiter=marche_limiter,
     )
-    if offres:
-        result["offres"] = offres
-    time.sleep(MARCHE_DELAY)
-
-    # 6. Tensions de recrutement (POST, Marché du travail : 10 req/s)
-    tensions = api_post(
+    tensions_task = api_post(
         client,
         f"{MARCHE_BASE}/v1/indicateur/stat-perspective-employeur",
         token_mgr,
@@ -224,19 +238,50 @@ def scrape_occupation(client, token_mgr, rome_code, slug):
             "codeTypeNomenclature": "TYPE_TENSION",
             "dernierePeriode": True,
         },
+        limiter=marche_limiter,
     )
+
+    salaires, demandeurs, offres, tensions = await asyncio.gather(
+        salaires_task, demandeurs_task, offres_task, tensions_task
+    )
+    if salaires:
+        result["salaires"] = salaires
+    if demandeurs:
+        result["demandeurs"] = demandeurs
+    if offres:
+        result["offres"] = offres
     if tensions:
         result["tensions"] = tensions
-    time.sleep(MARCHE_DELAY)
 
     return result
 
 
-def main():
+async def process_one(client, token_mgr, i, occ, total, sem):
+    """Process a single occupation with concurrency semaphore."""
+    async with sem:
+        rome_code = occ["code_rome"]
+        slug = occ["slug"]
+        path = f"html_fr/{slug}.json"
+
+        try:
+            data = await scrape_occupation(client, token_mgr, rome_code)
+            with open(path, "w") as f:
+                json.dump(data, f, indent=2, ensure_ascii=False)
+            sections = [k for k in data if data[k]]
+            print(f"  [{i+1}/{total}] {occ['title']} ({rome_code}) OK ({len(sections)} sections)")
+        except Exception as e:
+            print(f"  [{i+1}/{total}] {occ['title']} ({rome_code}) ERROR: {e}")
+
+
+async def async_main():
+    global rome_limiter, marche_limiter
+
     parser = argparse.ArgumentParser(description="Scrape France Travail ROME data")
     parser.add_argument("--start", type=int, default=0)
     parser.add_argument("--end", type=int, default=None)
     parser.add_argument("--force", action="store_true")
+    parser.add_argument("--concurrency", type=int, default=10,
+                        help="Max parallel occupations (default: 10)")
     args = parser.parse_args()
 
     client_id = os.environ.get("FRANCE_TRAVAIL_CLIENT_ID")
@@ -265,33 +310,28 @@ def main():
         print("Nothing to scrape — all cached.")
         return
 
-    est_time = len(to_scrape) * 6 * ROME_DELAY  # ~6 API calls per occupation
-    print(f"Scraping {len(to_scrape)} occupations ({est_time/60:.0f} min estimated)")
+    # Rate limiters: ROME at 1 req/s, Marché at 8 req/s (safe margin from 10)
+    rome_limiter = RateLimiter(rate=1.0)
+    marche_limiter = RateLimiter(rate=8.0)
+
+    # Bottleneck: 2 ROME calls/occupation at 1 req/s = ~0.5 occupations/s
+    # With concurrency=10, ~10 occupations overlap their marché calls
+    est_seconds = len(to_scrape) * 2  # ~2s per occupation (ROME is bottleneck)
+    print(f"Scraping {len(to_scrape)} occupations (~{est_seconds/60:.0f} min estimated, concurrency={args.concurrency})")
 
     token_mgr = TokenManager(client_id, client_secret)
-    client = httpx.Client()
+    sem = asyncio.Semaphore(args.concurrency)
 
-    for idx, (i, occ) in enumerate(to_scrape):
-        slug = occ["slug"]
-        rome_code = occ["code_rome"]
-        path = f"html_fr/{slug}.json"
-
-        print(f"  [{i+1}/{len(occupations)}] {occ['title']} ({rome_code})...", end=" ", flush=True)
-
-        try:
-            data = scrape_occupation(client, token_mgr, rome_code, slug)
-            with open(path, "w") as f:
-                json.dump(data, f, indent=2, ensure_ascii=False)
-            sections = [k for k in data if data[k]]
-            print(f"OK ({len(sections)} sections)")
-        except Exception as e:
-            print(f"ERROR: {e}")
-
-    client.close()
+    async with httpx.AsyncClient() as client:
+        tasks = [
+            process_one(client, token_mgr, i, occ, len(occupations), sem)
+            for i, occ in to_scrape
+        ]
+        await asyncio.gather(*tasks)
 
     cached = len([f for f in os.listdir("html_fr") if f.endswith(".json")])
     print(f"\nDone. {cached}/{len(occupations)} JSON files in html_fr/")
 
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(async_main())
