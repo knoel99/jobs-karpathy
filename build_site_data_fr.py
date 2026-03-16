@@ -41,55 +41,69 @@ def main():
         meta = occ_meta.get(slug, {})
 
         salary = None
-        if row.get("median_salary_annual"):
-            try:
-                salary = int(float(row["median_salary_annual"]))
-                stats["salary"] += 1
-            except ValueError:
-                pass
+        for sal_key in ("salaire_median_annuel", "median_salary_annual"):
+            if row.get(sal_key):
+                try:
+                    salary = int(float(row[sal_key]))
+                    stats["salary"] += 1
+                except ValueError:
+                    pass
+                break
 
         demandeurs = None
-        if row.get("demandeurs"):
-            try:
-                demandeurs = int(row["demandeurs"])
-                stats["demandeurs"] += 1
-            except ValueError:
-                pass
+        for dem_key in ("nombre_demandeurs", "demandeurs"):
+            if row.get(dem_key):
+                try:
+                    demandeurs = int(row[dem_key])
+                    stats["demandeurs"] += 1
+                except ValueError:
+                    pass
+                break
 
         offres = None
-        if row.get("offres"):
-            try:
-                offres = int(row["offres"])
-                stats["offres"] += 1
-            except ValueError:
-                pass
+        for off_key in ("nombre_offres", "offres"):
+            if row.get(off_key):
+                try:
+                    offres = int(row[off_key])
+                    stats["offres"] += 1
+                except ValueError:
+                    pass
+                break
 
         tension = None
-        if row.get("tension"):
-            try:
-                tension = int(float(row["tension"]))
-                stats["tension"] += 1
-            except ValueError:
-                pass
+        for ten_key in ("tension_pct", "tension"):
+            if row.get(ten_key):
+                try:
+                    tension = int(float(row[ten_key]))
+                    stats["tension"] += 1
+                except ValueError:
+                    pass
+                break
 
         exposure = score.get("exposure")
         if exposure is not None:
             stats["exposure"] += 1
 
+        tension_desc = row.get("tension_desc", "")
         entry = {
             "title": occ["title"],
             "slug": slug,
-            "rome_code": occ["rome_code"],
-            "domain": meta.get("domain", ""),
+            "code_rome": occ["code_rome"],
             "domain_code": meta.get("domain_code", ""),
-            "subdomain": meta.get("subdomain", ""),
-            "salary": salary,
+            "domain_name": meta.get("domain_name", meta.get("domain", "")),
+            "subdomain_code": meta.get("subdomain_code", ""),
+            "subdomain_name": meta.get("subdomain_name", meta.get("subdomain", "")),
+            "category": meta.get("category", ""),
+            "pay": salary,
             "demandeurs": demandeurs,
             "offres": offres,
             "tension": tension,
+            "tension_desc": tension_desc,
             "education": row.get("niveau_education", ""),
             "exposure": exposure,
             "exposure_rationale": score.get("rationale", ""),
+            "description": row.get("description", ""),
+            "url": meta.get("url", row.get("url", "")),
         }
         data.append(entry)
 

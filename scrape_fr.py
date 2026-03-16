@@ -190,7 +190,7 @@ def main():
 
     for idx, (i, occ) in enumerate(to_scrape):
         slug = occ["slug"]
-        rome_code = occ["rome_code"]
+        rome_code = occ["code_rome"]
         path = f"html_fr/{slug}.json"
 
         print(f"  [{i+1}/{len(occupations)}] {occ['title']} ({rome_code})...", end=" ", flush=True)

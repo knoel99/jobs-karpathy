@@ -205,7 +205,7 @@ async def main_async():
                     scores[slug] = {
                         "slug": slug,
                         "title": occ["title"],
-                        "rome_code": occ["rome_code"],
+                        "code_rome": occ["code_rome"],
                         **result,
                     }
                     print(f"  {occ['title']}: exposure={result.get('exposure', '?')}")

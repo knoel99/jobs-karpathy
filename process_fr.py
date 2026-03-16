@@ -19,10 +19,10 @@ def json_to_markdown(data, occ_meta):
     md = []
 
     title = occ_meta["title"]
-    rome_code = occ_meta["rome_code"]
+    code_rome = occ_meta["code_rome"]
     md.append(f"# {title}")
-    md.append(f"**Code ROME:** {rome_code}")
-    md.append(f"**Domaine:** {occ_meta.get('domain', '')}")
+    md.append(f"**Code ROME:** {code_rome}")
+    md.append(f"**Domaine:** {occ_meta.get('domain_name', occ_meta.get('domain', ''))}")
     md.append("")
 
     # Fiche métier (main description)

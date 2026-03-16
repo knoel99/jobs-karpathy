@@ -55,7 +55,7 @@ def main():
         records.append({
             "title": occ["title"],
             "slug": slug,
-            "rome_code": occ["rome_code"],
+            "code_rome": occ["code_rome"],
             "domain": occ.get("domain", ""),
             "salary": salary,
             "demandeurs": demandeurs,

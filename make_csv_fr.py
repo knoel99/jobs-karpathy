@@ -103,12 +103,15 @@ def extract_tensions(data):
     """Extract primary tension indicator (PERSPECTIVE code, scale 1-5).
 
     Falls back to INT_EMB (hiring intensity) if PERSPECTIVE not found.
+    Returns (tension_pct, tension_desc).
     """
     tensions = data.get("tensions")
     if not tensions:
-        return ""
+        return "", ""
 
     entries = tensions if isinstance(tensions, list) else [tensions]
+    descs = {1: "Très défavorable", 2: "Défavorable", 3: "Neutre",
+             4: "Favorable", 5: "Très favorable"}
 
     # Look for PERSPECTIVE code first (rang 1-5)
     for entry in entries:
@@ -118,7 +121,10 @@ def extract_tensions(data):
         if "PERSPECTIVE" in code.upper():
             val = entry.get("valeur", entry.get("rang", ""))
             if val:
-                return str(val)
+                try:
+                    return str(val), descs.get(int(float(val)), "")
+                except (ValueError, TypeError):
+                    return str(val), ""
 
     # Fallback: INT_EMB or any tension indicator
     for entry in entries:
@@ -128,9 +134,9 @@ def extract_tensions(data):
         if "INT_EMB" in code.upper() or "TENSION" in code.upper():
             val = entry.get("valeur", entry.get("rang", ""))
             if val:
-                return str(val)
+                return str(val), "Intensité embauche"
 
-    return ""
+    return "", ""
 
 
 def extract_niveau_education(data):
@@ -176,10 +182,12 @@ def main():
         occupations = json.load(f)
 
     fieldnames = [
-        "title", "domain", "subdomain", "slug", "rome_code",
-        "median_salary_annual", "median_salary_hourly",
-        "niveau_education", "demandeurs", "offres", "tension",
-        "description",
+        "title", "category", "slug", "code_rome",
+        "salaire_median_annuel", "salaire_median_horaire",
+        "niveau_education",
+        "nombre_demandeurs", "nombre_offres",
+        "tension_pct", "tension_desc",
+        "description", "url",
     ]
 
     rows = []
@@ -198,7 +206,7 @@ def main():
         annual, hourly = extract_salary(data)
         demandeurs = extract_demandeurs(data)
         offres = extract_offres(data)
-        tension = extract_tensions(data)
+        tension_pct, tension_desc = extract_tensions(data)
         education = extract_niveau_education(data)
 
         if annual:
@@ -207,24 +215,25 @@ def main():
             stats["demandeurs"] += 1
         if offres:
             stats["offres"] += 1
-        if tension:
+        if tension_pct:
             stats["tension"] += 1
         if education:
             stats["education"] += 1
 
         rows.append({
             "title": occ["title"],
-            "domain": occ.get("domain", ""),
-            "subdomain": occ.get("subdomain", ""),
+            "category": occ.get("category", ""),
             "slug": occ["slug"],
-            "rome_code": occ["rome_code"],
-            "median_salary_annual": annual,
-            "median_salary_hourly": hourly,
+            "code_rome": occ["code_rome"],
+            "salaire_median_annuel": annual,
+            "salaire_median_horaire": hourly,
             "niveau_education": education,
-            "demandeurs": demandeurs,
-            "offres": offres,
-            "tension": tension,
+            "nombre_demandeurs": demandeurs,
+            "nombre_offres": offres,
+            "tension_pct": tension_pct,
+            "tension_desc": tension_desc,
             "description": extract_description(data),
+            "url": occ.get("url", ""),
         })
 
     with open("occupations_fr.csv", "w", newline="", encoding="utf-8") as f:
