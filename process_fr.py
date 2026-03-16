@@ -25,59 +25,65 @@ def json_to_markdown(data, occ_meta):
     md.append(f"**Domaine:** {occ_meta.get('domain_name', occ_meta.get('domain', ''))}")
     md.append("")
 
-    # Fiche métier (main description)
+    # Fiche métier / Métier (v1 stores in "metier", v2 in "fiche")
     fiche = data.get("fiche", {})
-    if fiche:
-        definition = fiche.get("definition", "")
-        if not definition:
-            # Try nested structure
-            for key in ("metier", "appellations"):
-                if isinstance(fiche.get(key), dict):
-                    definition = fiche[key].get("definition", "")
-                    if definition:
-                        break
-        if definition:
-            md.append("## Définition")
-            md.append("")
-            md.append(definition)
-            md.append("")
+    metier = data.get("metier", {})
+    if not isinstance(fiche, dict):
+        fiche = {}
+    if not isinstance(metier, dict):
+        metier = {}
 
-        # Accès au métier
-        acces = fiche.get("accesEmploi", "")
-        if not acces:
-            acces = fiche.get("conditionExercice", "")
-        if acces:
-            md.append("## Accès au métier")
-            md.append("")
-            md.append(acces)
-            md.append("")
+    # Definition: try metier.definition, then fiche.definition
+    definition = metier.get("definition", "") or fiche.get("definition", "")
+    if definition:
+        md.append("## Définition")
+        md.append("")
+        md.append(definition)
+        md.append("")
 
-        # Conditions d'exercice
-        conditions = fiche.get("conditionExercice", "")
-        if conditions and conditions != acces:
-            md.append("## Conditions d'exercice")
-            md.append("")
-            md.append(conditions)
-            md.append("")
+    # Accès au métier
+    acces = metier.get("accesEmploi", "") or fiche.get("accesEmploi", "") or fiche.get("conditionExercice", "")
+    if acces:
+        md.append("## Accès au métier")
+        md.append("")
+        md.append(acces)
+        md.append("")
 
-        # Appellations
-        appellations = fiche.get("appellations", [])
-        if isinstance(appellations, list) and appellations:
-            md.append("## Appellations courantes")
-            md.append("")
-            for app in appellations[:20]:
-                if isinstance(app, dict):
-                    md.append(f"- {app.get('libelle', app.get('libelleCourt', str(app)))}")
-                else:
-                    md.append(f"- {app}")
-            md.append("")
+    # Conditions d'exercice
+    conditions = fiche.get("conditionExercice", "")
+    if conditions and conditions != acces:
+        md.append("## Conditions d'exercice")
+        md.append("")
+        md.append(conditions)
+        md.append("")
 
-    # Compétences
+    # Appellations — try metier then fiche
+    appellations = metier.get("appellations", []) or fiche.get("appellations", [])
+    if isinstance(appellations, list) and appellations:
+        md.append("## Appellations courantes")
+        md.append("")
+        for app in appellations[:20]:
+            if isinstance(app, dict):
+                md.append(f"- {app.get('libelle', app.get('libelleCourt', str(app)))}")
+            else:
+                md.append(f"- {app}")
+        md.append("")
+
+    # Compétences mobilisées (v1 metier.competencesMobilisees) or separate key
     competences = data.get("competences", {})
+    comp_mobilisees = metier.get("competencesMobilisees", [])
+    if comp_mobilisees:
+        md.append("## Compétences mobilisées")
+        md.append("")
+        for c in comp_mobilisees[:15]:
+            if isinstance(c, dict):
+                md.append(f"- {c.get('libelle', str(c))}")
+            else:
+                md.append(f"- {c}")
+        md.append("")
+
     if competences:
-        savoirs = competences.get("savoirEtre", [])
-        if not savoirs:
-            savoirs = competences.get("savoirs", [])
+        savoirs = competences.get("savoirEtre", []) or competences.get("savoirs", [])
         savoir_faire = competences.get("savoirFaire", [])
 
         if savoir_faire:
@@ -99,6 +105,18 @@ def json_to_markdown(data, occ_meta):
                 else:
                     md.append(f"- {s}")
             md.append("")
+
+    # Contextes de travail (v1 metier.contextesTravail)
+    contextes = metier.get("contextesTravail", [])
+    if contextes:
+        md.append("## Contextes de travail")
+        md.append("")
+        for c in contextes[:10]:
+            if isinstance(c, dict):
+                md.append(f"- {c.get('libelle', str(c))}")
+            else:
+                md.append(f"- {c}")
+        md.append("")
 
     # Salaires
     salaires = data.get("salaires", {})
@@ -123,17 +141,25 @@ def json_to_markdown(data, occ_meta):
     if demandeurs:
         md.append("## Demandeurs d'emploi")
         md.append("")
-        if isinstance(demandeurs, list):
+        if isinstance(demandeurs, dict):
+            # v1 format: listeValeursParPeriode
+            periodes = demandeurs.get("listeValeursParPeriode", [])
+            for p in periodes[:5]:
+                code = p.get("codeNomenclature", "")
+                nb = p.get("valeurPrincipaleNombre", "")
+                if nb:
+                    md.append(f"- Catégorie {code}: {nb} demandeurs")
+            if not periodes:
+                for key, val in demandeurs.items():
+                    if val and key != "listeValeursParPeriode":
+                        md.append(f"- {key}: {val}")
+        elif isinstance(demandeurs, list):
             for entry in demandeurs[:5]:
                 if isinstance(entry, dict):
                     cat = entry.get("categorie", entry.get("codeTypologie", ""))
                     nb = entry.get("nbDemandeurs", entry.get("valeur", ""))
                     if nb:
                         md.append(f"- Catégorie {cat}: {nb} demandeurs")
-        elif isinstance(demandeurs, dict):
-            for key, val in demandeurs.items():
-                if val:
-                    md.append(f"- {key}: {val}")
         md.append("")
 
     # Offres
@@ -141,7 +167,17 @@ def json_to_markdown(data, occ_meta):
     if offres:
         md.append("## Offres d'emploi")
         md.append("")
-        if isinstance(offres, list):
+        if isinstance(offres, dict):
+            # v1 format
+            periodes = offres.get("listeValeursParPeriode", [])
+            total = sum(p.get("valeurPrincipaleNombre", 0) for p in periodes if p.get("valeurPrincipaleNombre"))
+            if total:
+                md.append(f"- Total offres: {total:,}")
+            if not periodes:
+                for key, val in offres.items():
+                    if val and key != "listeValeursParPeriode":
+                        md.append(f"- {key}: {val}")
+        elif isinstance(offres, list):
             total = sum(
                 int(e.get("nbOffres", e.get("valeur", 0)))
                 for e in offres
@@ -149,10 +185,6 @@ def json_to_markdown(data, occ_meta):
             )
             if total:
                 md.append(f"- Total offres: {total:,}")
-        elif isinstance(offres, dict):
-            for key, val in offres.items():
-                if val:
-                    md.append(f"- {key}: {val}")
         md.append("")
 
     # Tensions
@@ -160,17 +192,28 @@ def json_to_markdown(data, occ_meta):
     if tensions:
         md.append("## Tensions de recrutement")
         md.append("")
-        if isinstance(tensions, list):
+        descs = {1: "Très défavorable", 2: "Défavorable", 3: "Neutre",
+                 4: "Favorable", 5: "Très favorable"}
+        if isinstance(tensions, dict):
+            # v1 format
+            periodes = tensions.get("listeValeursParPeriode", [])
+            for p in periodes[:5]:
+                code = p.get("codeNomenclature", "")
+                rang = p.get("valeurPrincipaleNombre")
+                desc = descs.get(rang, "") if code == "PERSPECTIVE" else ""
+                if rang is not None:
+                    md.append(f"- {code}: {rang}/5 {desc}")
+            if not periodes:
+                for key, val in tensions.items():
+                    if val and key != "listeValeursParPeriode":
+                        md.append(f"- {key}: {val}")
+        elif isinstance(tensions, list):
             for entry in tensions[:5]:
                 if isinstance(entry, dict):
                     code = entry.get("codeTypologie", entry.get("code", ""))
                     val = entry.get("valeur", entry.get("rang", ""))
                     lib = entry.get("libelle", "")
                     md.append(f"- {code} ({lib}): {val}")
-        elif isinstance(tensions, dict):
-            for key, val in tensions.items():
-                if val:
-                    md.append(f"- {key}: {val}")
         md.append("")
 
     return "\n".join(md)

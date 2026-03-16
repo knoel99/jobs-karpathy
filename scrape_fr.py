@@ -23,9 +23,11 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # France Travail API endpoints
-TOKEN_URL = "https://entreprise.francetravail.fr/connexion/oauth2/access_token?realm=/partenaire"
-ROME_BASE = "https://api.francetravail.io/partenaire/rome/v2"
-MARCHE_BASE = "https://api.francetravail.io/partenaire/infotravail/v1"
+TOKEN_URL = "https://entreprise.francetravail.fr/connexion/oauth2/access_token"
+ROME_BASE = "https://api.francetravail.io/partenaire/rome-fiches-metiers/v1/fiches_metiers"
+ROME_METIERS_BASE = "https://api.francetravail.io/partenaire/rome-metiers/v1/metiers"
+ROME_COMP_BASE = "https://api.francetravail.io/partenaire/rome-competences/v1/competences"
+MARCHE_BASE = "https://api.francetravail.io/partenaire/stats-offres-demandes-emploi"
 
 # Rate limits: ROME = 1 req/sec, Marché du travail = 10 req/sec
 ROME_DELAY = 1.1
@@ -47,11 +49,19 @@ class TokenManager:
             return self.token
         response = client.post(
             TOKEN_URL,
+            params={"realm": "/partenaire"},
             data={
                 "grant_type": "client_credentials",
                 "client_id": self.client_id,
                 "client_secret": self.client_secret,
-                "scope": "api_rome-metiersv2 api_rome-fichesv2 api_rome-competencesv2 api_infotravail-informationmarche",
+                "scope": " ".join([
+                    "api_rome-metiersv1",
+                    "api_rome-fiches-metiersv1",
+                    "api_rome-competencesv1",
+                    "api_stats-offres-demandes-emploiv1",
+                    "offresetdemandesemploi",
+                    "nomenclatureRome",
+                ]),
             },
         )
         response.raise_for_status()
@@ -90,57 +100,109 @@ def api_get(client, url, token_mgr, retries=3, delay=1.0):
     return None
 
 
+def api_post(client, url, token_mgr, json_body, retries=3, delay=1.0):
+    """POST with retry on 401/429/5xx."""
+    for attempt in range(retries):
+        try:
+            resp = client.post(url, headers=token_mgr.headers(client), json=json_body, timeout=30)
+            if resp.status_code == 401:
+                token_mgr.token = None
+                time.sleep(delay)
+                continue
+            if resp.status_code == 429:
+                wait = float(resp.headers.get("Retry-After", delay * (2 ** attempt)))
+                time.sleep(wait)
+                continue
+            if resp.status_code >= 500:
+                time.sleep(delay * (2 ** attempt))
+                continue
+            if resp.status_code in (404, 400):
+                return None
+            resp.raise_for_status()
+            return resp.json()
+        except httpx.TimeoutException:
+            time.sleep(delay * (2 ** attempt))
+    return None
+
+
 def scrape_occupation(client, token_mgr, rome_code, slug):
     """Fetch all data for one ROME occupation."""
     result = {}
 
-    # 1. Fiche métier (main description)
-    fiche = api_get(client, f"{ROME_BASE}/metiers/metier/{rome_code}", token_mgr)
+    # 1. Fiche métier complète (ROME Fiches métiers v1 : 1 req/s)
+    fiche = api_get(client, f"{ROME_BASE}/fiche_metier/{rome_code}", token_mgr)
     if fiche:
         result["fiche"] = fiche
     time.sleep(ROME_DELAY)
 
-    # 2. Compétences (skills)
-    competences = api_get(client, f"{ROME_BASE}/competences/metier/{rome_code}", token_mgr)
-    if competences:
-        result["competences"] = competences
+    # 2. Métier info (ROME Métiers v1 : 1 req/s)
+    metier = api_get(client, f"{ROME_METIERS_BASE}/metier/{rome_code}", token_mgr)
+    if metier:
+        result["metier"] = metier
     time.sleep(ROME_DELAY)
 
-    # 3. Salaires nationaux
+    # 3. Salaires nationaux par ROME (Marché du travail : 10 req/s)
     salaires = api_get(
         client,
-        f"{MARCHE_BASE}/marche/salaires?codeRome={rome_code}",
+        f"{MARCHE_BASE}/v1/indicateur/salaire-rome-fap/NAT/FR?codeRome={rome_code}",
         token_mgr,
     )
     if salaires:
         result["salaires"] = salaires
     time.sleep(MARCHE_DELAY)
 
-    # 4. Demandeurs d'emploi
-    demandeurs = api_get(
+    # 4. Demandeurs d'emploi nationaux (POST, Marché du travail : 10 req/s)
+    demandeurs = api_post(
         client,
-        f"{MARCHE_BASE}/marche/demandeurs?codeRome={rome_code}",
+        f"{MARCHE_BASE}/v1/indicateur/stat-demandeurs",
         token_mgr,
+        json_body={
+            "codeTypeTerritoire": "NAT",
+            "codeTerritoire": "FR",
+            "codeTypeActivite": "ROME",
+            "codeActivite": rome_code,
+            "codeTypePeriode": "TRIMESTRE",
+            "codeTypeNomenclature": "CATCAND",
+            "dernierePeriode": True,
+        },
     )
     if demandeurs:
         result["demandeurs"] = demandeurs
     time.sleep(MARCHE_DELAY)
 
-    # 5. Offres d'emploi
-    offres = api_get(
+    # 5. Offres d'emploi (POST, Marché du travail : 10 req/s)
+    offres = api_post(
         client,
-        f"{MARCHE_BASE}/marche/offres?codeRome={rome_code}",
+        f"{MARCHE_BASE}/v1/indicateur/stat-offres",
         token_mgr,
+        json_body={
+            "codeTypeTerritoire": "NAT",
+            "codeTerritoire": "FR",
+            "codeTypeActivite": "ROME",
+            "codeActivite": rome_code,
+            "codeTypePeriode": "TRIMESTRE",
+            "codeTypeNomenclature": "ORIGINEOFF",
+            "dernierePeriode": True,
+        },
     )
     if offres:
         result["offres"] = offres
     time.sleep(MARCHE_DELAY)
 
-    # 6. Tensions de recrutement
-    tensions = api_get(
+    # 6. Tensions de recrutement (POST, Marché du travail : 10 req/s)
+    tensions = api_post(
         client,
-        f"{MARCHE_BASE}/marche/tensions?codeRome={rome_code}",
+        f"{MARCHE_BASE}/v1/indicateur/stat-perspective-employeur",
         token_mgr,
+        json_body={
+            "codeTypeTerritoire": "NAT",
+            "codeTerritoire": "FR",
+            "codeTypeActivite": "ROME",
+            "codeActivite": rome_code,
+            "codeTypePeriode": "ANNEE",
+            "codeTypeNomenclature": "TYPE_TENSION",
+            "dernierePeriode": True,
+        },
     )
     if tensions:
         result["tensions"] = tensions

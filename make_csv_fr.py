@@ -14,9 +14,13 @@ import re
 
 
 def extract_salary(data):
-    """Extract average annual net salary from France Travail salary data.
+    """Extract average annual salary from France Travail salary data.
 
-    Averages SAL3 (or SAL1 fallback) values across all FAP entries.
+    Handles two API response formats:
+    - v1 (stats-offres-demandes-emploi): valeursParPeriode[*].salaireValeurMontant[*]
+      with codeNomenclature SAL3 (experienced) or SAL1 (entry-level), values are monthly net.
+    - v2/flat: direct SAL3/SAL1/salaireBrutMedian keys on entries.
+
     Returns (annual, hourly) using 1607 hours/year (French legal standard).
     """
     salaires = data.get("salaires")
@@ -24,46 +28,87 @@ def extract_salary(data):
         return "", ""
 
     values = []
-    entries = salaires if isinstance(salaires, list) else [salaires]
-    for entry in entries:
-        if not isinstance(entry, dict):
-            continue
-        # Try SAL3 first (experienced), then SAL1 (entry-level)
-        for key in ("SAL3", "salaireBrutMedian", "SAL1"):
-            val = entry.get(key)
+
+    # Format v1: valeursParPeriode → salaireValeurMontant
+    if isinstance(salaires, dict):
+        periodes = salaires.get("valeursParPeriode", [])
+        for periode in periodes:
+            montants = periode.get("salaireValeurMontant", [])
+            sal3 = sal1 = None
+            for m in montants:
+                code = m.get("codeNomenclature", "")
+                montant = m.get("valeurPrincipaleMontant")
+                if code == "SAL3" and montant:
+                    sal3 = montant
+                elif code == "SAL1" and montant:
+                    sal1 = montant
+            val = sal3 or sal1
             if val:
-                try:
-                    values.append(float(val))
-                except (ValueError, TypeError):
-                    pass
-                break
+                values.append(float(val))
+
+    # Format flat (list of dicts with SAL3/SAL1 keys)
+    if not values:
+        entries = salaires if isinstance(salaires, list) else [salaires]
+        for entry in entries:
+            if not isinstance(entry, dict):
+                continue
+            for key in ("SAL3", "salaireBrutMedian", "SAL1"):
+                val = entry.get(key)
+                if val:
+                    try:
+                        values.append(float(val))
+                    except (ValueError, TypeError):
+                        pass
+                    break
 
     if not values:
         return "", ""
 
-    avg_annual = sum(values) / len(values)
-    hourly = avg_annual / 1607  # 1607h = durée légale annuelle en France
-    return str(round(avg_annual)), f"{hourly:.2f}"
+    avg_monthly = sum(values) / len(values)
+    annual = round(avg_monthly * 12)
+    hourly = avg_monthly * 12 / 1607  # 1607h = durée légale annuelle en France
+    return str(annual), f"{hourly:.2f}"
 
 
 def extract_demandeurs(data):
-    """Extract jobseeker count (categories ABC = DEFM officiel)."""
+    """Extract jobseeker count (categories ABC = DEFM officiel).
+
+    Handles two API response formats:
+    - v1 (stat-demandeurs): listeValeursParPeriode[*] with codeNomenclature + valeurPrincipaleNombre
+    - flat: list of dicts with categorie/codeTypologie + nbDemandeurs/valeur
+    """
     demandeurs = data.get("demandeurs")
     if not demandeurs:
         return ""
 
+    # Format v1: listeValeursParPeriode
+    if isinstance(demandeurs, dict):
+        periodes = demandeurs.get("listeValeursParPeriode", [])
+        # Look for ABC category
+        for p in periodes:
+            if p.get("codeNomenclature") == "ABC":
+                nb = p.get("valeurPrincipaleNombre")
+                if nb:
+                    return str(nb)
+        # Fallback: category A alone
+        for p in periodes:
+            if p.get("codeNomenclature") == "A":
+                nb = p.get("valeurPrincipaleNombre")
+                if nb:
+                    return str(nb)
+
+    # Format flat
     entries = demandeurs if isinstance(demandeurs, list) else [demandeurs]
     for entry in entries:
         if not isinstance(entry, dict):
             continue
-        # Look for ABC category (official DEFM figure)
         cat = str(entry.get("categorie", entry.get("codeTypologie", "")))
         if cat.upper() in ("ABC", "A,B,C", "DEFM_ABC"):
             val = entry.get("nbDemandeurs", entry.get("valeur", ""))
             if val:
                 return str(val)
 
-    # Fallback: sum categories A, B, C
+    # Fallback: sum A + B + C
     total = 0
     found = False
     for entry in entries:
@@ -81,11 +126,25 @@ def extract_demandeurs(data):
 
 
 def extract_offres(data):
-    """Sum total job postings across all periods."""
+    """Sum total job postings across all periods.
+
+    Handles v1 (stat-offres with listeValeursParPeriode) and flat format.
+    """
     offres = data.get("offres")
     if not offres:
         return ""
 
+    # Format v1: listeValeursParPeriode
+    if isinstance(offres, dict):
+        periodes = offres.get("listeValeursParPeriode", [])
+        total = 0
+        for p in periodes:
+            nb = p.get("valeurPrincipaleNombre")
+            if nb:
+                total += nb
+        return str(total) if total > 0 else ""
+
+    # Format flat
     entries = offres if isinstance(offres, list) else [offres]
     total = 0
     for entry in entries:
@@ -102,6 +161,7 @@ def extract_offres(data):
 def extract_tensions(data):
     """Extract primary tension indicator (PERSPECTIVE code, scale 1-5).
 
+    Handles v1 (stat-perspective-employeur with listeValeursParPeriode) and flat format.
     Falls back to INT_EMB (hiring intensity) if PERSPECTIVE not found.
     Returns (tension_pct, tension_desc).
     """
@@ -109,30 +169,44 @@ def extract_tensions(data):
     if not tensions:
         return "", ""
 
-    entries = tensions if isinstance(tensions, list) else [tensions]
     descs = {1: "Très défavorable", 2: "Défavorable", 3: "Neutre",
              4: "Favorable", 5: "Très favorable"}
 
-    # Look for PERSPECTIVE code first (rang 1-5)
+    # Format v1: listeValeursParPeriode with codeNomenclature
+    if isinstance(tensions, dict):
+        periodes = tensions.get("listeValeursParPeriode", [])
+        for p in periodes:
+            if p.get("codeNomenclature") == "PERSPECTIVE":
+                rang = p.get("valeurPrincipaleNombre")
+                if rang is not None:
+                    return str(rang), descs.get(rang, "")
+        # Fallback: INT_EMB
+        for p in periodes:
+            if p.get("codeNomenclature") == "INT_EMB":
+                rang = p.get("valeurPrincipaleNombre")
+                if rang is not None:
+                    return str(rang), "Intensité embauche"
+
+    # Format flat
+    entries = tensions if isinstance(tensions, list) else [tensions]
     for entry in entries:
         if not isinstance(entry, dict):
             continue
-        code = str(entry.get("codeTypologie", entry.get("code", "")))
+        code = str(entry.get("codeTypologie", entry.get("code", entry.get("codeNomenclature", ""))))
         if "PERSPECTIVE" in code.upper():
-            val = entry.get("valeur", entry.get("rang", ""))
+            val = entry.get("valeur", entry.get("rang", entry.get("valeurPrincipaleNombre", "")))
             if val:
                 try:
                     return str(val), descs.get(int(float(val)), "")
                 except (ValueError, TypeError):
                     return str(val), ""
 
-    # Fallback: INT_EMB or any tension indicator
     for entry in entries:
         if not isinstance(entry, dict):
             continue
-        code = str(entry.get("codeTypologie", entry.get("code", "")))
+        code = str(entry.get("codeTypologie", entry.get("code", entry.get("codeNomenclature", ""))))
         if "INT_EMB" in code.upper() or "TENSION" in code.upper():
-            val = entry.get("valeur", entry.get("rang", ""))
+            val = entry.get("valeur", entry.get("rang", entry.get("valeurPrincipaleNombre", "")))
             if val:
                 return str(val), "Intensité embauche"
 
@@ -144,8 +218,14 @@ def extract_niveau_education(data):
 
     Prioritizes highest qualification mentioned (Bac+8 down to sans diplôme).
     """
+    # Try both metier (v1) and fiche (v2) keys
+    metier = data.get("metier", {})
     fiche = data.get("fiche", {})
-    acces = fiche.get("accesEmploi", "")
+    acces = ""
+    if isinstance(metier, dict):
+        acces = metier.get("accesEmploi", "")
+    if not acces and isinstance(fiche, dict):
+        acces = fiche.get("accesEmploi", "")
     if not acces:
         acces = str(fiche)
 
@@ -169,11 +249,14 @@ def extract_niveau_education(data):
 
 
 def extract_description(data):
-    """Get job definition from fiche métier."""
+    """Get job definition from fiche or metier."""
+    # Try metier.definition (v1) then fiche.definition (v2)
+    metier = data.get("metier", {})
+    if isinstance(metier, dict) and metier.get("definition"):
+        return metier["definition"][:200]
     fiche = data.get("fiche", {})
-    definition = fiche.get("definition", "")
-    if definition:
-        return definition[:200]
+    if isinstance(fiche, dict) and fiche.get("definition"):
+        return fiche["definition"][:200]
     return ""
 
 
