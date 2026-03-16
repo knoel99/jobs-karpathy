@@ -207,6 +207,36 @@ body {
   background: rgba(255,255,255,0.04);
 }
 
+.legend-help {
+  font-size: 11px;
+  line-height: 1.5;
+}
+.legend-help summary {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--fg2);
+  cursor: pointer;
+  user-select: none;
+}
+.legend-help summary:hover { color: var(--fg); }
+.legend-help p {
+  margin-top: 6px;
+  color: var(--fg2);
+  font-size: 11px;
+  line-height: 1.5;
+}
+.legend-help b { color: var(--fg); font-weight: 600; }
+.legend-help kbd {
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 3px;
+  padding: 1px 4px;
+  font-size: 10px;
+  font-family: inherit;
+}
+
 .gradient-legend {
   display: flex;
   align-items: center;
@@ -321,6 +351,19 @@ canvas#canvas {
   <div class="view-toggle">
     <button class="active" onclick="setView('treemap')">Treemap</button>
     <button onclick="setView('scatter')">Exposition vs Tension</button>
+  </div>
+
+  <div class="legend-help" id="legendTreemap">
+    <details>
+      <summary>Comment lire la Treemap</summary>
+      <p>Chaque rectangle représente un métier ou un groupe de métiers. La <b>taille</b> est proportionnelle au nombre de demandeurs d'emploi inscrits à France Travail. La <b>couleur</b> dépend de la couche sélectionnée ci-dessous. Cliquez pour explorer : domaines → sous-domaines → métiers. <kbd>Échap</kbd> pour remonter.</p>
+    </details>
+  </div>
+  <div class="legend-help" id="legendScatter" style="display:none;">
+    <details>
+      <summary>Comment lire ce graphique</summary>
+      <p>Chaque colonne correspond à un score d'exposition IA (0 à 10). La <b>largeur</b> de la colonne est proportionnelle au nombre total de demandeurs à ce niveau d'exposition. Les métiers sont empilés verticalement et triés par <b>tension de recrutement</b> (plus tendu en haut). La <b>hauteur</b> de chaque bloc est proportionnelle au nombre de demandeurs du métier. Cela permet de repérer quels niveaux d'exposition concentrent le plus de demandeurs et si ces métiers sont en tension ou non.</p>
+    </details>
   </div>
 
   <div class="stat-section">
@@ -758,10 +801,17 @@ function updateBreadcrumb() {
 
 function setView(view) {
   currentView = view;
+  // Reset drill-down when switching views to avoid broken filtered state
+  drillPath = [];
+  updateBreadcrumb();
   document.querySelectorAll(".view-toggle button").forEach(b => b.classList.remove("active"));
   document.querySelector(`.view-toggle button[onclick="setView('${view}')"]`).classList.add("active");
+  // Toggle contextual legend
+  document.getElementById("legendTreemap").style.display = view === "treemap" ? "" : "none";
+  document.getElementById("legendScatter").style.display = view === "scatter" ? "" : "none";
   hovered = null;
   hideTooltip();
+  computeStats();
   resize();
 }
 
