@@ -47,23 +47,30 @@ class TokenManager:
         """Get a valid token, refreshing if needed (tokens expire ~25 min)."""
         if self.token and time.time() < self.expires_at - 60:
             return self.token
-        response = client.post(
-            TOKEN_URL,
-            params={"realm": "/partenaire"},
-            data={
-                "grant_type": "client_credentials",
-                "client_id": self.client_id,
-                "client_secret": self.client_secret,
-                "scope": " ".join([
-                    "api_rome-metiersv1",
-                    "api_rome-fiches-metiersv1",
-                    "api_rome-competencesv1",
-                    "api_stats-offres-demandes-emploiv1",
-                    "offresetdemandesemploi",
-                    "nomenclatureRome",
-                ]),
-            },
-        )
+        token_data = {
+            "grant_type": "client_credentials",
+            "client_id": self.client_id,
+            "client_secret": self.client_secret,
+            "scope": " ".join([
+                "api_rome-metiersv1",
+                "api_rome-fiches-metiersv1",
+                "api_rome-competencesv1",
+                "api_stats-offres-demandes-emploiv1",
+                "offresetdemandesemploi",
+                "nomenclatureRome",
+            ]),
+        }
+        for attempt in range(3):
+            response = client.post(
+                TOKEN_URL,
+                params={"realm": "/partenaire"},
+                data=token_data,
+            )
+            if response.status_code == 200:
+                break
+            print(f"\n  [TOKEN] Attempt {attempt+1} failed: {response.status_code} {response.text[:200]}")
+            if attempt < 2:
+                time.sleep(2 ** attempt)
         response.raise_for_status()
         data = response.json()
         self.token = data["access_token"]
