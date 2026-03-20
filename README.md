@@ -4,6 +4,10 @@ Outil de recherche pour explorer visuellement les données professionnelles et l
 
 **Démo US : [karpathy.ai/jobs](https://karpathy.ai/jobs/)**
 
+**Démo France : [knoel99.github.io](https://knoel99.github.io/)**
+
+Code avec les données France Travail : [knoel99/jobs-karpathy](https://github.com/knoel99/jobs-karpathy) 
+
 ---
 
 ## Contenu
